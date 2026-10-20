@@ -13,7 +13,7 @@ type UserModule struct {
 }
 
 func NewUserModule() *UserModule {
-	userRepo := repository.NewInMemoryUserRepository()
+	userRepo := repository.NewSQLUserRepository()
 	userService := v1service.NewUserService(userRepo)
 	userHandler := v1handler.NewUserHandler(userService)
 	userRoutes := v1routes.NewUserRouter(userHandler)

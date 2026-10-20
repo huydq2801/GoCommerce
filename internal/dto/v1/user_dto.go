@@ -1,8 +1,6 @@
 package v1dto
 
-import (
-	"huydq2801.com/golearn/internal/models"
-)
+
 
 type UserDTO struct {
 	UUID   string `json:"uuid"`
@@ -31,41 +29,19 @@ type UpdateUserInput struct {
 	Level    int    `json:"level" binding:"omitempty,oneof=1 2"`
 }
 
-func (input *CreateUserInput) MapCreateInputToModel() models.User {
-	return models.User{
-		Name:     input.Name,
-		Email:    input.Email,
-		Age:      input.Age,
-		Password: input.Password,
-		Status:   input.Status,
-		Level:    input.Level,
-	}
+func (input *CreateUserInput) MapCreateInputToModel() {
+	
 }
-func (input *UpdateUserInput) MapUpdateInputToModel() models.User {
-	return models.User{
-		Name:     input.Name,
-		Email:    input.Email,
-		Age:      input.Age,
-		Password: input.Password,
-		Status:   input.Status,
-		Level:    input.Level,
-	}
+func (input *UpdateUserInput) MapUpdateInputToModel(){
+	
 }
-func MapUserToDTO(user models.User) *UserDTO {
+func MapUserToDTO() *UserDTO {
 	return &UserDTO{
-		UUID:   user.UUID,
-		Name:   user.Name,
-		Email:  user.Email,
-		Age:    int(user.Age),
-		Level:  mapLevelText(user.Level),
-		Status: mapStatusText(user.Status),
 	}
 }
-func MapUsersToDTOs(users []models.User) []UserDTO {
-	dtoList := make([]UserDTO, 0, len(users))
-	for _, user := range users {
-		dtoList = append(dtoList, *MapUserToDTO(user))
-	}
+func MapUsersToDTOs() []UserDTO {
+	dtoList := make([]UserDTO, 0)
+	
 	return dtoList
 }
 func mapStatusText(status int) string {

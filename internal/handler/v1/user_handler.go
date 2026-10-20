@@ -41,13 +41,8 @@ func (uh *UserHandler) GetAllUsers(ctx *gin.Context) {
 	if param.Limit == 0 {
 		param.Limit = 10
 	}
-	users, err := uh.service.GetAllUsers(param.Search, param.Page, param.Limit)
-	if err != nil {
-		utils.ResponseError(ctx, err)
-		return
-	}
-	dtoList := v1dto.MapUsersToDTOs(users)
-	utils.ResponseSuccess(ctx, http.StatusOK, &dtoList)
+	
+	utils.ResponseSuccess(ctx, http.StatusOK,"")
 }
 
 func (uh *UserHandler) CreateUser(ctx *gin.Context) {
@@ -56,14 +51,8 @@ func (uh *UserHandler) CreateUser(ctx *gin.Context) {
 		utils.ResponseValidator(ctx, validation.HandleValidationError(err))
 		return
 	}
-	user := input.MapCreateInputToModel()
-	createdUser, err := uh.service.CreateUser(user)
-	if err != nil {
-		utils.ResponseError(ctx, err)
-		return
-	}
-	userDTO := v1dto.MapUserToDTO(createdUser)
-	utils.ResponseSuccess(ctx, http.StatusCreated, &userDTO)
+	
+	utils.ResponseSuccess(ctx, http.StatusCreated, "")
 }
 
 func (uh *UserHandler) GetUserByUUID(ctx *gin.Context) {
@@ -72,12 +61,8 @@ func (uh *UserHandler) GetUserByUUID(ctx *gin.Context) {
 		utils.ResponseValidator(ctx, validation.HandleValidationError(err))
 		return
 	}
-	user, err := uh.service.GetUserByUUID(param.UUID)
-	if err != nil {
-		utils.ResponseError(ctx, err)
-		return
-	}
-	utils.ResponseSuccess(ctx, http.StatusOK, v1dto.MapUserToDTO(user))
+	
+	utils.ResponseSuccess(ctx, http.StatusOK, "")
 }
 
 func (uh *UserHandler) UpdateUser(ctx *gin.Context) {
@@ -91,12 +76,8 @@ func (uh *UserHandler) UpdateUser(ctx *gin.Context) {
 		utils.ResponseValidator(ctx, validation.HandleValidationError(err))
 		return
 	}
-	updatedUser, err := uh.service.UpdateUser(param.UUID, input.MapUpdateInputToModel())
-	if err != nil {
-		utils.ResponseError(ctx, err)
-		return
-	}
-	utils.ResponseSuccess(ctx, http.StatusOK, v1dto.MapUserToDTO(updatedUser))
+	
+	utils.ResponseSuccess(ctx, http.StatusOK, "")
 }
 
 func (uh *UserHandler) DeleteUser(ctx *gin.Context) {
@@ -105,10 +86,6 @@ func (uh *UserHandler) DeleteUser(ctx *gin.Context) {
 		utils.ResponseValidator(ctx, validation.HandleValidationError(err))
 		return
 	}
-	err := uh.service.DeleteUser(param.UUID)
-	if err != nil {
-		utils.ResponseError(ctx, err)
-		return
-	}
+	
 	utils.ResponseStatusCode(ctx, http.StatusNoContent)
 }
