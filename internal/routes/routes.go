@@ -16,8 +16,8 @@ func RegisterRoutes(r *gin.Engine, routes ...Route) {
 		middleware.AuthMiddleware(),
 		middleware.RateLimiterMiddleware(),
 	)
-	api := r.Group("/api/v1")
+	v1api := r.Group("/api/v1")
 	for _, route := range routes {
-		route.RegisterRoutes(api)
+		route.RegisterRoutes(v1api)
 	}
 }

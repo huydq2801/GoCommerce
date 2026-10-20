@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:18.6-alpine3.24
+    container_name: postgres-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: 28012005huy
+      POSTGRES_DB: GoCommerce
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+volumes:
+  postgres_data:
