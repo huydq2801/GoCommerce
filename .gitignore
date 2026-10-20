@@ -1,0 +1,53 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
+main
+api
+
+# Test binary, profiling, and coverage
+*.test
+*.out
+profile.pprof
+coverage.txt
+coverage.html
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Go workspace
+go.work
+go.work.sum
+
+# Dependency directory (uncomment if you don't commit vendor)
+# vendor/
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.gemini/
+
+# Operating System files
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# Database / Temporary files
+*.db
+*.sqlite
+*.sqlite3
+tmp/

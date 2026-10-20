@@ -1,0 +1,7 @@
+$kind: http-request
+description: ""
+url: "{{hostname}}users/"
+method: GET
+headers:
+  x-api-key: "{{x-api-key}}"
+order: 2000
