@@ -39,6 +39,8 @@ go.work.sum
 *.swo
 *~
 .gemini/
+postman/
+.postman
 
 # Operating System files
 .DS_Store
