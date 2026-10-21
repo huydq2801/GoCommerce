@@ -1,4 +1,0 @@
-$kind: collection
-variables:
-  hostname: ""
-  x-api-key: ""

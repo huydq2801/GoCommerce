@@ -23,5 +23,6 @@ func (u *UserRouters) RegisterRoutes(r *gin.RouterGroup) {
 		users.GET("/:uuid", u.handler.GetUserByUUID)
 		users.PUT("/:uuid", u.handler.UpdateUser)
 		users.DELETE("/:uuid", u.handler.DeleteUser)
+		users.GET("/crash", u.handler.CrashApp)
 	}
 }

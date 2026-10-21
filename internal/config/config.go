@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"os"
 
 	"huydq2801.com/golearn/internal/utils"
 )
@@ -22,7 +21,7 @@ type Config struct {
 
 func NewConfig() *Config {
 	return &Config{
-		ServerAddress: fmt.Sprintf(":%s", os.Getenv("SERVER_PORT")),
+		ServerAddress: fmt.Sprintf(":%s", utils.GetEnv("SERVER_PORT", "8080")),
 		DB: DataBaseConfig{
 			Host:     utils.GetEnv("DB_HOST", "localhost"),
 			Port:     utils.GetEnv("DB_PORT", "5432"),
