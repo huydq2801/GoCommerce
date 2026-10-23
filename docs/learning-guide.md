@@ -1,55 +1,49 @@
-# Học và giải thích được MVP
+# Development guide
 
-File khóa học bạn cung cấp là danh sách tiêu đề bài giảng, không phải nội dung/video đầy đủ. Việc đối chiếu dưới đây dựa trên tiêu đề và code project hiện tại.
+## Luồng khởi động
 
-| Nhóm bài | Áp dụng trong project |
-|---|---|
-| 01–21: HTTP, Gin, validation | Router, status codes, DTO và decode JSON; upload chưa cần cho MVP |
-| 22–28, 57–59: middleware/logging | Request ID, recovery, rate limit; chỉ log metadata thay vì ghi nguyên password/body |
-| 29–41, 60–70: CRUD, DTO, pagination | User CRUD thật, conflict/404, soft delete, search/pagination |
-| 42–53: PostgreSQL, migration, pgx/sqlc | Schema constraints, pool, SQL queries, generated code |
-| 54–56: shopping structure và shutdown | Module wiring; đóng HTTP trước, pool sau |
-| 74–82: authentication | Bcrypt, JWT access token, role/status; refresh token/blacklist để sau |
-| 83–86: Docker/build | Multi-stage Dockerfile, non-root runtime, Compose health + migration order |
-| 71–73, 87–96: cache/email/queue/log stack | Hoãn Redis, email, RabbitMQ, Loki; CORS thêm khi có frontend khác origin |
+`cmd/api/main.go` đọc cấu hình, mở PostgreSQL pool và khởi tạo application. `internal/app` nối repository, service, handler và router bằng constructor. Khi nhận tín hiệu dừng, HTTP server drain các request trước khi pool được đóng.
 
-## Thứ tự đọc code
+## Tổ chức nghiệp vụ
 
-1. `cmd/api/main.go`: config, pool, signal và cleanup.
-2. `internal/app/app.go`, `user_module.go`, `catalog_module.go`: nối dependency.
-3. User handler → service → repository → `internal/db/queries/users.sql`: một luồng CRUD dễ nắm.
-4. Catalog DTO/filter → SQL: tiền VND, specifications và sort allowlist.
-5. `internal/middleware/auth.go`: validate JWT rồi kiểm tra user hiện tại.
-6. `internal/service/v1/shopping_service.go`: transaction checkout/cancel là phần quan trọng nhất.
-7. `tests/integration/mvp_test.go`: hành vi hệ thống phải giữ đúng.
+- **Handler:** đọc request, validate input, gọi service và ánh xạ response HTTP.
+- **Service:** áp dụng quy tắc nghiệp vụ, quyền sở hữu và ranh giới transaction.
+- **Repository:** cung cấp truy cập dữ liệu và transaction store.
+- **sqlc:** sinh mã Go từ SQL trong `internal/db/queries`.
 
-Không sửa tay file `internal/db/sqlc/*.go`. Sửa SQL rồi chạy `sqlc generate`.
+Service nhận `context.Context`; các truy vấn dùng context của request để hỗ trợ cancellation và deadline.
 
-## Tự demo
+## Thay đổi SQL và schema
 
-Chạy `scripts/demo.ps1`, sau đó dùng Postman thử thêm:
+1. Tạo migration mới khi thay đổi schema. Không sửa migration đã áp dụng trên môi trường có dữ liệu.
+2. Cập nhật SQL trong `internal/db/queries`.
+3. Chạy `sqlc generate`; không sửa tay `internal/db/sqlc/*.go`.
+4. Cập nhật repository/service/handler và OpenAPI.
+5. Bổ sung test cho hành vi hoặc ràng buộc mới.
 
-- Customer gọi API quản trị → 403.
-- Thiếu token khi xem cart → 401.
-- Tạo SKU/email trùng → 409.
-- Nhập giá âm/số lượng 0 → 400.
-- PUT product với version cũ → 409.
-- Xem đơn của user khác → 404.
-- Retry checkout cùng key → cùng order ID.
-- Hủy đơn hai lần → stock chỉ tăng một lần.
-- Admin chuyển processing rồi customer hủy → 409.
+## Checkout và inventory
 
-## Câu hỏi phỏng vấn
+Mọi sửa giỏ và checkout khóa cùng cart row. Checkout khóa các product theo UUID tăng dần; kiểm tra active/stock, lấy giá hiện tại và lưu snapshot trong cùng transaction với việc trừ kho và xóa giỏ.
 
-1. Vì sao service dùng context.Context thay vì gin.Context?
-2. UNIQUE constraint khác kiểm tra tồn tại trước INSERT thế nào?
-3. Vì sao cart mutex trong Go chưa đủ nếu chạy hai API instances?
-4. Nếu request timeout sau khi commit, client retry sẽ làm gì?
-5. Vì sao order items lưu snapshot giá?
-6. FOR UPDATE và optimistic version phục vụ hai tình huống nào?
-7. Vì sao phải dừng HTTP trước khi đóng pool?
-8. Vì sao log request body trong bài học cần điều chỉnh khi dùng thực tế?
-9. JWT payload có bí mật không? Vì sao không cần mã hóa AES cho MVP này?
-10. Docker HEALTHCHECK khác readiness và CI khác CD ở điểm nào?
+Giữ thứ tự khóa nhất quán khi bổ sung thao tác inventory. Không thay row locks bằng mutex trong process vì ứng dụng có thể chạy nhiều instance. Các thao tác thay đổi product tăng version để phát hiện form quản trị đã lỗi thời.
 
-Mốc review: chạy demo, giải thích checkout/rollback/idempotency bằng lời của bạn, rồi mới thêm UI hoặc deploy domain. Không thêm công nghệ chỉ để tăng số dòng CV.
+Idempotency key định danh một checkout. Retry cùng key phải trả đơn cũ; thay đổi input với key đã dùng phải bị từ chối.
+
+## Quy ước API
+
+- Public đọc catalog; customer JWT truy cập giỏ và đơn của chính tài khoản đó.
+- Admin JWT hoặc bootstrap credential mới được gọi API quản trị.
+- Không nhận role/status trong payload đăng ký công khai.
+- Dùng allowlist cho sort, giới hạn pagination và kích thước request.
+- Không đưa SQL errors, password, token hoặc nguyên request body vào response/log.
+- Giữ OpenAPI trong `internal/apidocs/openapi.json` đồng bộ với route và DTO.
+
+## Trước khi commit
+
+```powershell
+gofmt -w cmd internal pkg tests
+go vet ./...
+go test ./...
+```
+
+Chạy integration tests khi thay đổi query, migration, transaction hoặc API contract. Xem [Testing](verification.md) để chuẩn bị PostgreSQL test riêng.

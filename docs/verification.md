@@ -1,51 +1,71 @@
-# Kiểm chứng MVP và nội dung CV
+# Testing & verification
 
-## Kết quả local ngày 23/10/2026
+## Chạy kiểm thử
 
-- `go test -count=1 ./...` với TEST_DATABASE_URL trên PostgreSQL 18: PASS, gồm unit và integration tests.
-- `go vet ./...`: PASS.
-- `gofmt -l cmd internal pkg tests`: không có file cần sửa.
-- Docker Compose trên project/volume/ports test riêng: build API non-root thành công, migration job hoàn thành, database/API healthy.
-- `scripts/demo.ps1` chạy trên Docker API: PASS, retry trả cùng order ID và cancellation hoàn stock 10.
-- Race detector chưa chạy local (Windows hiện không có compiler C trong PATH). CI có lệnh `go test -race`, nhưng workflow chưa được push/chạy trên GitHub.
-- Không sửa `.env`, không chạy migration vào database hiện tại của bạn; không thay đổi DNS hoặc deploy VPS.
+```powershell
+go test ./...
+go vet ./...
+```
 
-## Bộ kiểm thử
+Unit tests chạy độc lập với PostgreSQL. Integration tests chỉ chạy khi có `TEST_DATABASE_URL`.
 
-- Config validation và URL-encoding credential database.
-- Bcrypt, chuẩn hóa email và ép đăng ký về Member.
-- Rate limiter chặn mọi request vượt giới hạn, không phụ thuộc quyết định ghi log.
-- Log không lộ body/password/token/API key; recovery không lộ panic.
-- JWT đúng/sai chữ ký, hết hạn, thiếu token và customer không được quản trị.
-- OpenAPI có operation cho mọi route thực thi, trừ endpoint tự phục vụ spec.
-- Graceful shutdown chờ request đang chạy hoàn thành.
-- PostgreSQL HTTP integration: đăng ký/login, CRUD, filter/pagination, optimistic version, cart, checkout/replay, quyền sở hữu, status transitions, deactivate và soft delete.
-- 100 khách checkout đồng thời với stock 10: đúng 10 đơn thành công, stock cuối 0.
-- Hủy đồng thời: hoàn kho một lần.
-- 10 request checkout cùng user/key chạy đồng thời: cùng một order ID, chỉ trừ kho một lần.
-- Thay đổi role có hiệu lực ở request kế tiếp; body quá 1 MiB trả 413.
-- Thiếu sản phẩm thứ hai: rollback stock sản phẩm thứ nhất, không tạo đơn, giữ nguyên giỏ.
-- Migration Catalog/Shopping: up → down → up trên schema test riêng.
+### PostgreSQL integration tests
 
-Chỉ `go test ./...` không có TEST_DATABASE_URL chưa chứng minh integration tests chạy. Không dùng kết quả concurrency này làm benchmark RPS/p95 vì chưa phải load test có đo hiệu năng chuẩn.
+Tạo container riêng cho kiểm thử:
 
-## Checklist trước khi gửi CV
+```powershell
+docker run -d --name gocommerce-test -p 127.0.0.1:55433:5432 -e POSTGRES_USER=gocommerce_test -e POSTGRES_PASSWORD=local-test-only -e POSTGRES_DB=gocommerce_test postgres:18-alpine
+docker exec gocommerce-test pg_isready -U gocommerce_test -d gocommerce_test
+```
 
-- [ ] Tự chạy full stack và script demo trên máy bạn.
-- [ ] Hiểu và giải thích được transaction/locking/idempotency.
-- [ ] Review diff, xác nhận không có `.env` hoặc secret được Git theo dõi.
-- [ ] Đưa README/OpenAPI/tests lên repository mà nhà tuyển dụng truy cập được.
-- [ ] Push rồi xác nhận CI trên GitHub thực sự xanh.
-- [ ] Nếu ghi deployed, xác nhận URL domain có HTTPS và hoạt động từ máy khác.
-- [ ] Không ghi frontend/payment/email/Redis/RabbitMQ/CD/monitoring là đã hoàn thành.
+Sau khi PostgreSQL báo `accepting connections`:
 
-## Nội dung CV có thể dùng sau khi tự kiểm chứng
+```powershell
+$env:TEST_DATABASE_URL = 'postgresql://gocommerce_test:local-test-only@localhost:55433/gocommerce_test?sslmode=disable'
+go test -v ./tests/integration
+```
 
-**GoCommerce — Electronics Store REST API | Dự án cá nhân**
+Kết thúc kiểm thử, dọn container test:
 
-- Xây dựng REST API bằng Go/Gin cho tài khoản, catalog điện thoại/laptop, giỏ hàng và đơn COD; phân quyền quản trị bằng JWT và trạng thái user hiện tại.
-- Sử dụng PostgreSQL, pgx, sqlc và SQL migrations; triển khai tìm kiếm/phân trang, soft delete và optimistic version check.
-- Xử lý checkout/hủy đơn bằng transaction và row-level locking, có idempotency khi retry; integration test xác nhận 100 khách cạnh tranh tồn kho 10 chỉ tạo đúng 10 đơn.
-- Viết unit/integration tests, Dockerfile nhiều stage và Docker Compose; chuẩn bị CI kiểm tra format, vet, test/race và build.
+```powershell
+docker rm -f gocommerce-test
+```
 
-Chỉ thêm “triển khai trên Linux VPS với Nginx/HTTPS tại api.doanquanghuy.id.vn” sau khi deploy thật. Chỉ đổi “chuẩn bị CI” thành “tích hợp CI” sau khi workflow đã chạy trên repository.
+Tests yêu cầu tên database kết thúc bằng `_test`, tạo schema riêng cho từng test và dọn schema khi hoàn tất. Không trỏ TEST_DATABASE_URL tới database ứng dụng. Các credential trong ví dụ chỉ dùng cho container test local.
+
+Trên môi trường có compiler C, chạy race detector:
+
+```sh
+go test -race ./...
+```
+
+## Phạm vi kiểm thử
+
+| Nhóm | Hành vi được kiểm tra |
+|---|---|
+| Configuration | Validate environment và URL-encode database credential |
+| Registration | Chuẩn hóa email, hash password và gán Member mặc định |
+| Authentication | Token hợp lệ, sai chữ ký, hết hạn; quyền Admin và trạng thái user |
+| Middleware | Rate limit, giới hạn body, recovery và log không chứa dữ liệu nhạy cảm |
+| API contract | OpenAPI bao phủ các route; validation và HTTP error mapping |
+| Catalog | CRUD, lọc, phân trang, unique constraints và optimistic version |
+| Checkout | Snapshot giá, idempotency và quyền sở hữu đơn |
+| Transactions | Rollback tồn kho và giỏ hàng khi một sản phẩm không đủ hàng |
+| Cancellation | Hủy lặp/đồng thời chỉ hoàn kho một lần |
+| Lifecycle | Graceful shutdown chờ request đang xử lý |
+| Migrations | Catalog/Shopping up → down → up trên schema test riêng |
+
+## Kịch bản concurrency
+
+- **100 khách, tồn kho 10:** đúng 10 đơn thành công, tồn kho cuối bằng 0.
+- **10 request cùng checkout key:** cùng một order ID, chỉ trừ kho một lần.
+- **Hủy đơn đồng thời:** tồn kho được khôi phục một lần.
+- **Checkout nhiều sản phẩm, sản phẩm sau thiếu hàng:** rollback lần trừ kho trước đó, không tạo đơn và giữ nguyên giỏ.
+
+Đây là kiểm thử tính đúng đắn; không phải benchmark throughput hoặc latency.
+
+## Kết quả kiểm chứng local
+
+Bản MVP đã vượt qua unit/integration tests với PostgreSQL 18, `go vet`, kiểm tra định dạng và Docker Compose smoke test. Script demo xác nhận retry trả cùng order ID và hủy đơn hoàn kho đúng.
+
+GitHub Actions được cấu hình để chạy format, vet, race tests, build binary và Docker image. Trạng thái từng lần chạy được theo dõi tại [Actions](https://github.com/huydq2801/GoCommerce/actions).

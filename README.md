@@ -1,61 +1,78 @@
-# GoCommerce — Electronics Store API
+# GoCommerce
 
-Backend MVP cho cửa hàng điện thoại và laptop, dùng để học Golang và trình bày portfolio Backend Intern.
-
-**Trạng thái:** có luồng đăng ký → đăng nhập → xem sản phẩm → giỏ hàng → đặt đơn COD → hủy đơn hoặc quản trị giao hàng. Đây là REST API, chưa có giao diện cửa hàng và chưa triển khai public.
-
-## Công nghệ
-
-Go 1.26.5, Gin, PostgreSQL 18, pgx, sqlc, golang-migrate, JWT, bcrypt, Zerolog, Docker Compose. Giữ kiến trúc Handler → Service → Repository và constructor injection từ project đang học.
+REST API cho cửa hàng điện thoại và laptop, hỗ trợ quản lý sản phẩm, giỏ hàng và xử lý đơn hàng COD.
 
 ## Tính năng
 
-- Đăng ký mặc định Member; đăng nhập cấp access token 15 phút; `/users/me`.
-- Quản trị User CRUD, tìm kiếm/phân trang và soft delete.
-- Category CRUD; sản phẩm theo SKU, brand/model, giá VND, stock và specifications JSON.
-- Public search/filter/pagination; ngừng bán thay vì xóa lịch sử sản phẩm.
-- Optimistic version check khi quản trị cập nhật sản phẩm; stock thay đổi cũng tăng version.
-- Giỏ hàng theo user; đặt số lượng tuyệt đối, tối đa 50 SKU/giỏ và 1.000 đơn vị/SKU.
-- Checkout trong transaction với row locks, snapshot giá và Idempotency-Key.
-- Đơn COD: `placed → processing → shipped → completed`; customer chỉ hủy ở `placed`.
-- JWT + kiểm tra user hiện tại trong PostgreSQL; admin role mới được quản trị. Bootstrap API key chỉ dùng từ CLI/server.
-- Request ID, log metadata không chứa body/token/password; rate limiter trong process; health/readiness và graceful shutdown.
-- Unit/regression tests và PostgreSQL integration tests; Dockerfile nhiều stage chạy non-root; workflow CI.
+- **Tài khoản:** đăng ký, đăng nhập JWT, phân quyền quản trị và quản lý người dùng.
+- **Catalog:** danh mục, sản phẩm theo SKU, thương hiệu, thông số kỹ thuật; tìm kiếm, lọc giá và phân trang.
+- **Giỏ hàng:** quản lý số lượng sản phẩm theo tài khoản, hiển thị giá hiện tại.
+- **Đơn hàng:** checkout COD, theo dõi trạng thái và hủy đơn; lưu snapshot thông tin sản phẩm và giá.
+- **Tính nhất quán:** transaction và row-level locking bảo vệ tồn kho; idempotency key tránh tạo đơn trùng khi retry; optimistic version check tránh cập nhật sản phẩm bị lỗi thời.
 
-## Chạy nhanh bằng Docker — database mới
+## Công nghệ
 
-Yêu cầu Docker Desktop Linux engine, Docker Compose và PowerShell. Chạy từ **repository root**:
+| Thành phần | Công nghệ |
+|---|---|
+| Backend | Go, Gin |
+| Database | PostgreSQL, pgx, sqlc, golang-migrate |
+| Authentication | JWT, bcrypt |
+| Logging | Zerolog, request correlation ID |
+| Testing | Go Testing, PostgreSQL integration tests |
+| Container & CI | Docker, Docker Compose, GitHub Actions |
+| API documentation | OpenAPI 3.0 |
+
+## Kiến trúc
+
+Ứng dụng tổ chức theo các lớp **Handler → Service → Repository**. Dependency được khởi tạo bằng constructor tại `internal/app`; các thao tác checkout và hủy đơn sử dụng chung transaction cho thay đổi đơn hàng, giỏ hàng và tồn kho.
+
+```text
+cmd/api/                 Application entrypoint
+internal/app/            Dependency wiring and server lifecycle
+internal/handler/v1/     HTTP handlers
+internal/service/v1/     Business logic
+internal/repository/     Persistence contracts and transaction store
+internal/db/queries/     SQL source for sqlc
+internal/db/migrations/  Versioned database migrations
+internal/middleware/     Authentication, rate limiting and request logging
+tests/integration/       PostgreSQL integration tests
+```
+
+Chi tiết thiết kế và ERD: [Architecture](docs/architecture.md).
+
+## Chạy ứng dụng
+
+Yêu cầu Docker với Linux containers, Docker Compose và PowerShell. Thực hiện tại thư mục gốc của repository:
 
 ```powershell
 ./scripts/init-env.ps1
 docker compose up --build --wait
-Invoke-RestMethod http://localhost:8080/health/ready
+```
+
+Nếu đã có `.env`, dùng `./scripts/init-env.ps1 -CompleteExisting` để bổ sung secret còn thiếu hoặc thay secret quá ngắn; cấu hình database hiện tại được giữ nguyên. Với volume đã khởi tạo, `DB_USER`, `DB_PASSWORD` và `DB_NAME` phải khớp database đang sử dụng.
+
+Compose chờ PostgreSQL sẵn sàng, chạy migration rồi khởi động API.
+
+| Endpoint | URL local |
+|---|---|
+| API | http://localhost:8080/api/v1 |
+| Liveness | http://localhost:8080/health/live |
+| Readiness | http://localhost:8080/health/ready |
+| OpenAPI | http://localhost:8080/openapi.json |
+
+Import OpenAPI vào Postman hoặc Swagger Editor để xem các endpoint và request schema.
+
+### Demo luồng mua hàng
+
+```powershell
 ./scripts/demo.ps1
 ```
 
-Script init tạo `.env` với 3 giá trị ngẫu nhiên độc lập, không in secret. Script demo tạo category điện thoại/laptop, 2 sản phẩm, đăng ký/login, thêm giỏ, đặt đơn, retry cùng key và hủy đơn để kiểm tra hoàn kho. Mỗi lần chạy dùng mã riêng; không xóa dữ liệu cũ.
+Script tạo dữ liệu điện thoại/laptop, đăng ký và đăng nhập tài khoản, thêm sản phẩm vào giỏ, đặt đơn, gửi lại yêu cầu với cùng idempotency key và hủy đơn để kiểm tra hoàn kho.
 
-Nếu máy đã có database/volume hoặc `.env`:
+### Chạy Go trực tiếp
 
-1. Giữ nguyên DB_USER/DB_PASSWORD/DB_NAME đang dùng; thay đổi biến môi trường không đổi credential của một volume đã khởi tạo.
-2. Chạy `./scripts/init-env.ps1 -CompleteExisting` để bổ sung JWT_SECRET hoặc thay API_KEY quá ngắn. Script tạo backup `.env.backup.*`, không thay credential database hiện có.
-3. Kiểm tra DB_NAME và DB_USER trùng database thật. Nếu cổng 5432 đang bận, dùng DB_PUBLISH_PORT khác.
-4. Backup database trước khi chạy migration trên dữ liệu cần giữ. Không dùng `docker compose down -v` để chữa lỗi kết nối.
-5. `docker compose up --build --wait` sẽ chạy các migration chưa áp dụng trước khi khởi động API. Migration 000001 được giữ nguyên; 000002/000003 bổ sung Catalog/Shopping.
-
-API: `http://localhost:8080`; OpenAPI: `http://localhost:8080/openapi.json`. Import URL/file `internal/apidocs/openapi.json` vào Postman hoặc Swagger Editor để xem tài liệu.
-
-## Chạy Go trực tiếp
-
-Cần Go 1.26.5+, PostgreSQL và migrate CLI. Chạy từ repository root:
-
-```powershell
-go mod download
-# Sau khi chuẩn bị .env, PostgreSQL và áp dụng migration:
-go run ./cmd/api
-```
-
-Nếu dùng Compose để chuẩn bị database:
+Yêu cầu Go 1.26.5 trở lên. Sau khi chuẩn bị `.env`:
 
 ```powershell
 docker compose up -d --wait db
@@ -63,7 +80,7 @@ docker compose run --rm migrate
 go run ./cmd/api
 ```
 
-`.env` được đọc duy nhất tại entrypoint; environment của process có ưu tiên cao hơn file. DB_PORT là cổng Go kết nối khi chạy native; DB_PUBLISH_PORT là cổng Compose công bố ra host. Khi chạy cả Go native và Compose API, tránh để hai server dùng cùng SERVER_PORT.
+Các lệnh chạy tại repository root. Biến môi trường của process được ưu tiên hơn `.env`; `DB_PORT` là cổng kết nối native, còn `DB_PUBLISH_PORT` là cổng database được Compose công bố ra host.
 
 ## Kiểm thử
 
@@ -73,50 +90,24 @@ go vet ./...
 go build -o ./bin/api.exe ./cmd/api
 ```
 
-Integration tests **skip** nếu chưa đặt TEST_DATABASE_URL. Để chạy thật, tạo database/container riêng:
+Integration tests yêu cầu `TEST_DATABASE_URL` trỏ tới database riêng có hậu tố `_test`. Mỗi test sử dụng schema cô lập và dọn schema khi kết thúc. Khi chưa cấu hình biến này, integration tests được bỏ qua.
 
-```powershell
-docker run -d --name gocommerce-test -p 127.0.0.1:55433:5432 -e POSTGRES_USER=gocommerce_test -e POSTGRES_PASSWORD=local-test-only -e POSTGRES_DB=gocommerce_test postgres:18-alpine
-# Chờ pg_isready báo accepting connections:
-docker exec gocommerce-test pg_isready -U gocommerce_test -d gocommerce_test
-$env:TEST_DATABASE_URL = 'postgresql://gocommerce_test:local-test-only@localhost:55433/gocommerce_test?sslmode=disable'
-go test -v ./tests/integration
-# Sau khi xong, chỉ dọn container test do bạn vừa tạo:
-docker rm -f gocommerce-test
-```
+Bộ kiểm thử bao phủ luồng mua hàng, phân quyền, idempotent checkout, rollback và hủy đơn đồng thời. Kịch bản 100 khách cạnh tranh tồn kho 10 xác nhận đúng 10 đơn thành công và tồn kho cuối bằng 0.
 
-Tests từ chối database không có hậu tố `_test`, tạo schema riêng mỗi test và dọn schema đó khi kết thúc. Không dùng database ứng dụng thật. Trên Linux có compiler C, chạy thêm `go test -race ./...`; CI cũng chạy race detector và integration tests.
+Xem [Testing](docs/verification.md) để chạy integration tests. [CI workflow](.github/workflows/ci.yml) kiểm tra định dạng, vet, tests với race detector, build binary và Docker image.
 
-## API chính
+## Quy tắc nghiệp vụ
 
-| Quyền | Endpoints |
-|---|---|
-| Public | `POST /api/v1/auth/register`, `POST /api/v1/auth/login` |
-| Public | `GET /api/v1/categories`, `GET /api/v1/products`, `GET /api/v1/products/:uuid` |
-| User JWT | `GET /api/v1/users/me`, `GET /api/v1/cart` |
-| User JWT | `PUT/DELETE /api/v1/cart/items/:uuid`, `DELETE /api/v1/cart/items` |
-| User JWT | `POST/GET /api/v1/orders`, `GET /api/v1/orders/:uuid`, `POST /api/v1/orders/:uuid/cancel` |
-| Admin JWT hoặc bootstrap key | User CRUD; category/product writes; `GET /api/v1/admin/products/:uuid` |
-| Admin JWT hoặc bootstrap key | `GET /api/v1/admin/orders`, `GET /api/v1/admin/orders/:uuid`, `PATCH /api/v1/admin/orders/:uuid/status` |
-
-Public `POST /api/v1/users` là alias đăng ký giữ tương thích project cũ. User update dùng PATCH; product/category update dùng PUT. Không tự đưa API key vào frontend. Quản trị có thể dùng key từ CLI để cập nhật một user thành level 1, rồi đăng nhập bằng tài khoản đó. Schema giữ role 1 Admin, 2 Moderator, 3 Member; MVP chỉ Admin được quản trị.
-
-## Quy tắc cần biết
-
-- Một cửa hàng, một kho, một loại tiền VND; mỗi cấu hình điện thoại/laptop là SKU riêng.
-- Giỏ hàng không giữ chỗ tồn kho. Giá trong giỏ là giá hiện tại, checkout tính lại tại database.
-- Checkout cần header `Idempotency-Key` là UUID. Retry cùng key + địa chỉ đã chuẩn hóa trả đơn cũ; đổi input với key cũ trả 409. Key định danh một lần checkout, kể cả sau đó giỏ đã thay đổi.
-- Lỗi thiếu kho/giỏ rỗng/trạng thái sai/version cũ: 409; không tìm thấy hoặc truy cập đơn người khác: 404.
-- Khóa sản phẩm theo UUID tăng dần. Trừ kho, tạo đơn/chi tiết và xóa giỏ cùng commit hoặc cùng rollback.
-- Hủy đơn lặp/concurrent hoàn kho một lần. Không hủy sau khi admin chuyển sang processing.
-- Không có refresh/logout server-side ở MVP. Client xóa token khi đăng xuất; token bị đánh cắp có thể dùng tới hết hạn 15 phút. User bị khóa/xóa bị từ chối ngay ở request tiếp theo. Đổi password hiện chưa thu hồi token đang còn hạn.
-- Chưa có Redis, queue, email, online payment, frontend, CD hay monitoring dashboard. Không ghi các phần đó là đã triển khai trên CV.
+- Một cửa hàng, một kho, tiền tệ VND và thanh toán COD.
+- Giỏ hàng không giữ chỗ tồn kho. Checkout lấy giá và tồn kho từ PostgreSQL.
+- `POST /api/v1/orders` yêu cầu `Idempotency-Key` là UUID. Gửi lại cùng key và thông tin giao hàng trả về đơn đã tạo; thay đổi thông tin với key cũ trả `409`.
+- Đơn đi qua `placed → processing → shipped → completed`. Khách hàng được hủy đơn ở trạng thái `placed`.
+- Cập nhật sản phẩm yêu cầu `version` hiện tại; phiên bản cũ trả `409`.
+- Access token có thời hạn 15 phút. Role và trạng thái tài khoản được kiểm tra tại mỗi request. Bootstrap API key chỉ dùng cho thao tác quản trị từ server hoặc CLI.
 
 ## Tài liệu
 
-- [Kiến trúc, ERD và quyết định kỹ thuật](docs/architecture.md)
-- [Đối chiếu khóa học và hướng dẫn đọc code](docs/learning-guide.md)
-- [Domain/VPS/Nginx/HTTPS](docs/deployment.md)
-- [Kết quả kiểm chứng và checklist CV](docs/verification.md)
-
-CI nằm trong `.github/workflows/ci.yml`: format, vet, test/race, build binary và Docker image. Workflow chỉ được chuẩn bị ở local; trạng thái chạy trên GitHub cần kiểm tra sau khi bạn push.
+- [Architecture & ERD](docs/architecture.md)
+- [Development guide](docs/learning-guide.md)
+- [Testing & verification](docs/verification.md)
+- [Deployment: Nginx, HTTPS, backup & restore](docs/deployment.md)

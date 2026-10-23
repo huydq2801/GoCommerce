@@ -32,7 +32,7 @@ erDiagram
     PRODUCTS ||--o{ ORDER_ITEMS : references
 ```
 
-Users giữ schema đang học (identity ID nội bộ + UUID công khai). Catalog/order dùng UUID để thống nhất public API. Không đổi ID đang dùng chỉ để theo bản thiết kế ban đầu. Index phục vụ unique lookup, category lookup, giá, brand, lịch sử đơn và trạng thái. Chưa khẳng định search ILIKE có index tăng tốc; đo query trước khi tối ưu.
+Users sử dụng identity ID nội bộ và UUID công khai. Catalog/order dùng UUID để thống nhất public API. Các ID hiện có được giữ ổn định khi bổ sung module. Index phục vụ unique lookup, category lookup, giá, brand, lịch sử đơn và trạng thái. Chưa khẳng định search ILIKE có index tăng tốc; đo query trước khi tối ưu.
 
 ## Checkout và concurrency
 
@@ -54,6 +54,6 @@ API key là bootstrap credential tùy chọn trên request quản trị, không 
 
 ## Giới hạn vận hành
 
-Rate limiter in-memory theo IP chỉ phù hợp một instance. Không tin X-Forwarded-For nếu chưa khai báo proxy đáng tin. Offset pagination và count/list riêng phù hợp dữ liệu portfolio, không đảm bảo snapshot hoàn toàn cố định khi có concurrent inserts. Không retry transaction tự động; nếu có deadlock/connection failure, caller phải retry với cùng idempotency key. PostgreSQL là nguồn quyết định price/stock/order.
+Rate limiter in-memory theo IP chỉ phù hợp một instance. Không tin X-Forwarded-For nếu chưa khai báo proxy đáng tin. Offset pagination và count/list riêng phù hợp với quy mô MVP, không đảm bảo snapshot hoàn toàn cố định khi có concurrent inserts. Không retry transaction tự động; nếu có deadlock/connection failure, caller phải retry với cùng idempotency key. PostgreSQL là nguồn quyết định price/stock/order.
 
 Catalog PUT dùng optimistic version để tránh ghi đè stock bằng form cũ sau checkout/cancel. Customer cart không được xem là đã giữ hàng. Lịch sử đơn dùng snapshot và sản phẩm chỉ bị deactivated.
