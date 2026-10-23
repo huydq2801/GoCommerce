@@ -1,31 +1,31 @@
 package repository
 
-type SQLUserRepository struct {
+import (
+	"context"
+
+	"github.com/google/uuid"
+
+	"huydq2801.com/golearn/internal/db/sqlc"
+)
+
+type SQLUserRepository struct{ db sqlc.Querier }
+
+func NewSQLUserRepository(db sqlc.Querier) UserRepository { return &SQLUserRepository{db: db} }
+func (r *SQLUserRepository) Create(ctx context.Context, p sqlc.CreateUserParams) (sqlc.User, error) {
+	return r.db.CreateUser(ctx, p)
 }
-
-func NewSQLUserRepository() UserRepository {
-	return &SQLUserRepository{}
+func (r *SQLUserRepository) List(ctx context.Context, p sqlc.ListUsersParams) ([]sqlc.User, error) {
+	return r.db.ListUsers(ctx, p)
 }
-
-func (ur *SQLUserRepository) FindAll() {
+func (r *SQLUserRepository) Count(ctx context.Context, search string) (int64, error) {
+	return r.db.CountUsers(ctx, search)
 }
-
-func (ur *SQLUserRepository) Create() {
-
+func (r *SQLUserRepository) FindByUUID(ctx context.Context, id uuid.UUID) (sqlc.User, error) {
+	return r.db.GetUser(ctx, id)
 }
-
-func (ur *SQLUserRepository) FindByUUID() {
-
+func (r *SQLUserRepository) Update(ctx context.Context, p sqlc.UpdateUserParams) (sqlc.User, error) {
+	return r.db.UpdateUser(ctx, p)
 }
-
-func (ur *SQLUserRepository) Update() {
-
-}
-
-func (ur *SQLUserRepository) Delete() {
-
-}
-
-func (ur *SQLUserRepository) FindByEmail() {
-
+func (r *SQLUserRepository) Delete(ctx context.Context, id uuid.UUID) (int64, error) {
+	return r.db.SoftDeleteUser(ctx, id)
 }

@@ -32,3 +32,9 @@ func FormatFileSize(size int64) string {
 func NormalizeString(text string) string {
 	return strings.ToLower(strings.TrimSpace(text))
 }
+
+func ConverInt32Pointer(value int) *int32 {
+	var s int32
+	s = int32(value)
+	return &s
+}

@@ -1,34 +1,24 @@
 package middleware
 
 import (
-	"log"
-	"net/http"
-	"os"
+	"crypto/sha256"
+	"crypto/subtle"
 
 	"github.com/gin-gonic/gin"
+
+	"huydq2801.com/golearn/internal/utils"
 )
 
-func ApiKeyMiddleware() gin.HandlerFunc {
-	expectedKey := os.Getenv("API_KEY")
-	if expectedKey == "" {
-		expectedKey = "secret-key"
-	}
-	
-	return func(ctx *gin.Context) {
-		apiKey := ctx.GetHeader("X-API-Key")
-		if apiKey == ""{
-			ctx.AbortWithStatusJSON(http.StatusBadRequest,gin.H{
-				"error": "Missing API Key",
-			})
-			return 
-		}
-		if apiKey != expectedKey{
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized,gin.H{
-				"error": "Invalid API Key",
-			})
+// API keys protect administrative endpoints only until JWT/RBAC is implemented.
+func ApiKeyMiddleware(expected string) gin.HandlerFunc {
+	expectedHash := sha256.Sum256([]byte(expected))
+	return func(c *gin.Context) {
+		candidate := sha256.Sum256([]byte(c.GetHeader("X-API-Key")))
+		if expected == "" || subtle.ConstantTimeCompare(candidate[:], expectedHash[:]) != 1 {
+			utils.ResponseError(c, utils.NewError("Invalid administrator credential", utils.ErrCodeUnauthorized))
+			c.Abort()
 			return
 		}
-		log.Println("API Key is valid")
-		ctx.Next()
+		c.Next()
 	}
 }

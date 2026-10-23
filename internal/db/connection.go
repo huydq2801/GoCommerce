@@ -2,38 +2,33 @@ package db
 
 import (
 	"context"
-	"fmt"
-	"log"
+	"errors"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
 	"huydq2801.com/golearn/internal/config"
-	"huydq2801.com/golearn/internal/db/sqlc"
 )
 
-var DB *sqlc.Queries
-
-func InitDataBase() error {
-	connStr := config.NewConfig().DNS()
-	conf, err := pgxpool.ParseConfig(connStr)
+func Open(ctx context.Context, cfg *config.Config) (*pgxpool.Pool, error) {
+	conf, err := pgxpool.ParseConfig(cfg.DSN())
 	if err != nil {
-		return fmt.Errorf("error parsing database connection string: %v", err)
+		return nil, errors.New("invalid database configuration")
 	}
-	conf.MaxConns = 50
-	conf.MinConns = 5
+	conf.MaxConns = 10
+	conf.MinConns = 1
 	conf.MaxConnLifetime = 30 * time.Minute
 	conf.MaxConnIdleTime = 5 * time.Minute
-	conf.HealthCheckPeriod = 1 * time.Minute
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	conf.ConnConfig.ConnectTimeout = 5 * time.Second
+	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	DBPool, err := pgxpool.NewWithConfig(ctx, conf)
+	pool, err := pgxpool.NewWithConfig(pingCtx, conf)
 	if err != nil {
-		return fmt.Errorf("error creating database pool: %v", err)
+		return nil, errors.New("could not create database pool")
 	}
-	DB = sqlc.New(DBPool)
-	if err := DBPool.Ping(ctx); err != nil {
-		return fmt.Errorf("error pinging database: %v", err)
+	if err = pool.Ping(pingCtx); err != nil {
+		pool.Close()
+		return nil, errors.New("database unavailable: check DB_* settings and PostgreSQL readiness")
 	}
-	log.Println("Database connection successful")
-	return nil
+	return pool, nil
 }

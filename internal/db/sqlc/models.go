@@ -5,16 +5,87 @@
 package sqlc
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-type User struct {
-	UserID    int32     `json:"user_id"`
-	Uuid      uuid.UUID `json:"uuid"`
+type Cart struct {
+	ID     int64 `json:"id"`
+	UserID int32 `json:"user_id"`
+}
+
+type CartItem struct {
+	CartID    int64     `json:"cart_id"`
+	ProductID uuid.UUID `json:"product_id"`
+	Quantity  int32     `json:"quantity"`
+}
+
+type Category struct {
+	ID        uuid.UUID `json:"id"`
 	Name      string    `json:"name"`
-	Email     string    `json:"email"`
+	Slug      string    `json:"slug"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type Order struct {
+	ID             uuid.UUID `json:"id"`
+	UserID         int32     `json:"user_id"`
+	Status         string    `json:"status"`
+	TotalVnd       int64     `json:"total_vnd"`
+	RecipientName  string    `json:"recipient_name"`
+	Phone          string    `json:"phone"`
+	Address        string    `json:"address"`
+	PaymentMethod  string    `json:"payment_method"`
+	IdempotencyKey uuid.UUID `json:"idempotency_key"`
+	RequestHash    string    `json:"request_hash"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+type OrderItem struct {
+	OrderID      uuid.UUID `json:"order_id"`
+	ProductID    uuid.UUID `json:"product_id"`
+	Sku          string    `json:"sku"`
+	ProductName  string    `json:"product_name"`
+	UnitPriceVnd int64     `json:"unit_price_vnd"`
+	Quantity     int32     `json:"quantity"`
+}
+
+type Product struct {
+	ID             uuid.UUID       `json:"id"`
+	CategoryID     uuid.UUID       `json:"category_id"`
+	Sku            string          `json:"sku"`
+	Name           string          `json:"name"`
+	Slug           string          `json:"slug"`
+	Brand          string          `json:"brand"`
+	Model          string          `json:"model"`
+	Description    string          `json:"description"`
+	PriceVnd       int64           `json:"price_vnd"`
+	StockQuantity  int32           `json:"stock_quantity"`
+	Specifications json.RawMessage `json:"specifications"`
+	IsActive       bool            `json:"is_active"`
+	Version        int64           `json:"version"`
+	CreatedAt      time.Time       `json:"created_at"`
+	UpdatedAt      time.Time       `json:"updated_at"`
+}
+
+type User struct {
+	UserID       int32     `json:"user_id"`
+	Uuid         uuid.UUID `json:"uuid"`
+	UserEmail    string    `json:"user_email"`
+	UserPassword string    `json:"user_password"`
+	UserFullname string    `json:"user_fullname"`
+	// User age, must be between 1 and 150
+	UserAge *int32 `json:"user_age"`
+	// User status: 1: Active, 2: Inactive, 3: Banned
+	UserStatus int32 `json:"user_status"`
+	// User level: 1: Administrator, 2: Moderator, 3: Member
+	UserLevel     int32     `json:"user_level"`
+	UserCreatedAt time.Time `json:"user_created_at"`
+	UserUpdatedAt time.Time `json:"user_updated_at"`
+	// Soft delete timestamp: NULL means not deleted
+	UserDeletedAt *time.Time `json:"user_deleted_at"`
 }

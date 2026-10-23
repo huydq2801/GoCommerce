@@ -1,96 +1,97 @@
 package v1handler
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+
+	"huydq2801.com/golearn/internal/db/sqlc"
 	v1dto "huydq2801.com/golearn/internal/dto/v1"
 	v1service "huydq2801.com/golearn/internal/service/v1"
 	"huydq2801.com/golearn/internal/utils"
-	"huydq2801.com/golearn/internal/validation"
 )
 
-type UserHandler struct {
-	service v1service.UserService
-}
+type UserHandler struct{ service v1service.UserService }
 
 func NewUserHandler(service v1service.UserService) *UserHandler {
-	return &UserHandler{
-		service: service,
-	}
+	return &UserHandler{service: service}
 }
-
-type GetUserByUuidParam struct {
-	UUID string `uri:"uuid" binding:"required"`
-}
-type GetUsersParam struct {
-	Search string `form:"search" binding:"omitempty,min=3,max=50,search"`
-	Page   int    `form:"page" binding:"omitempty,min_int=1"`
-	Limit  int    `form:"limit" binding:"omitempty,min_int=1,max_int=100"`
-}
-
-func (uh *UserHandler) GetAllUsers(ctx *gin.Context) {
-	var param GetUsersParam
-	if err := ctx.ShouldBind(&param); err != nil {
-		utils.ResponseValidator(ctx, validation.HandleValidationError(err))
-		return
+func parseUUID(c *gin.Context) (uuid.UUID, bool) {
+	id, err := uuid.Parse(c.Param("uuid"))
+	if err != nil {
+		utils.ResponseError(c, utils.NewError("Invalid UUID", utils.ErrCodeBadRequest))
+		return uuid.Nil, false
 	}
-	if param.Page == 0 {
-		param.Page = 1
-	}
-	if param.Limit == 0 {
-		param.Limit = 10
-	}
-
-	utils.ResponseSuccess(ctx, http.StatusOK, "")
+	return id, true
 }
-
-func (uh *UserHandler) CreateUser(ctx *gin.Context) {
+func (h *UserHandler) CreateUser(c *gin.Context) {
 	var input v1dto.CreateUserInput
-	if err := ctx.ShouldBindJSON(&input); err != nil {
-		utils.ResponseValidator(ctx, validation.HandleValidationError(err))
+	if !utils.DecodeJSON(c, &input) {
 		return
 	}
-
-	utils.ResponseSuccess(ctx, http.StatusCreated, "")
-}
-
-func (uh *UserHandler) GetUserByUUID(ctx *gin.Context) {
-	var param GetUserByUuidParam
-	if err := ctx.ShouldBindUri(&param); err != nil {
-		utils.ResponseValidator(ctx, validation.HandleValidationError(err))
+	u, err := h.service.CreateUser(c.Request.Context(), input.MapCreateInputToModel())
+	if err != nil {
+		utils.ResponseError(c, err)
 		return
 	}
-
-	utils.ResponseSuccess(ctx, http.StatusOK, "")
+	c.Header("Location", "/api/v1/users/"+u.Uuid.String())
+	utils.ResponseSuccess(c, http.StatusCreated, v1dto.MapUserToDTO(u))
 }
-
-func (uh *UserHandler) UpdateUser(ctx *gin.Context) {
-	var param GetUserByUuidParam
-	if err := ctx.ShouldBindUri(&param); err != nil {
-		utils.ResponseValidator(ctx, validation.HandleValidationError(err))
+func (h *UserHandler) GetAllUsers(c *gin.Context) {
+	var p utils.Page
+	if err := c.ShouldBindQuery(&p); err != nil {
+		utils.ResponseError(c, utils.NewError("Invalid pagination", utils.ErrCodeBadRequest))
+		return
+	}
+	p.Defaults()
+	users, total, err := h.service.GetAllUsers(c.Request.Context(), p)
+	if err != nil {
+		utils.ResponseError(c, err)
+		return
+	}
+	utils.ResponsePage(c, v1dto.MapUsersToDTOs(users), p, total)
+}
+func (h *UserHandler) GetUserByUUID(c *gin.Context) {
+	id, ok := parseUUID(c)
+	if !ok {
+		return
+	}
+	u, err := h.service.GetUserByUUID(c.Request.Context(), id)
+	if err != nil {
+		utils.ResponseError(c, err)
+		return
+	}
+	utils.ResponseSuccess(c, 200, v1dto.MapUserToDTO(u))
+}
+func (h *UserHandler) UpdateUser(c *gin.Context) {
+	id, ok := parseUUID(c)
+	if !ok {
 		return
 	}
 	var input v1dto.UpdateUserInput
-	if err := ctx.ShouldBindJSON(&input); err != nil {
-		utils.ResponseValidator(ctx, validation.HandleValidationError(err))
+	if !utils.DecodeJSON(c, &input) {
 		return
 	}
-
-	utils.ResponseSuccess(ctx, http.StatusOK, "")
-}
-
-func (uh *UserHandler) DeleteUser(ctx *gin.Context) {
-	var param GetUserByUuidParam
-	if err := ctx.ShouldBindUri(&param); err != nil {
-		utils.ResponseValidator(ctx, validation.HandleValidationError(err))
+	if input.Name == nil && input.Email == nil && input.Age == nil && input.Password == nil && input.Status == nil && input.Level == nil {
+		utils.ResponseError(c, utils.NewError("At least one field is required", utils.ErrCodeBadRequest))
 		return
 	}
-
-	utils.ResponseStatusCode(ctx, http.StatusNoContent)
+	u, err := h.service.UpdateUser(c.Request.Context(), sqlc.UpdateUserParams{Uuid: id, UserFullname: input.Name, UserEmail: input.Email, UserAge: input.Age, UserPassword: input.Password, UserStatus: input.Status, UserLevel: input.Level})
+	if err != nil {
+		utils.ResponseError(c, err)
+		return
+	}
+	utils.ResponseSuccess(c, 200, v1dto.MapUserToDTO(u))
 }
-func (uh *UserHandler) CrashApp(ctx *gin.Context) {
-	var a []int
-	fmt.Println(a[1])
+func (h *UserHandler) DeleteUser(c *gin.Context) {
+	id, ok := parseUUID(c)
+	if !ok {
+		return
+	}
+	if err := h.service.DeleteUser(c.Request.Context(), id); err != nil {
+		utils.ResponseError(c, err)
+		return
+	}
+	c.Status(204)
 }

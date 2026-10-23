@@ -6,14 +6,47 @@ package sqlc
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 type Querier interface {
+	ClearCart(ctx context.Context, cartID int64) error
+	CountCartItems(ctx context.Context, cartID int64) (int64, error)
+	CountOrders(ctx context.Context, userID int32) (int64, error)
+	CountProducts(ctx context.Context, arg CountProductsParams) (int64, error)
+	CountUsers(ctx context.Context, search string) (int64, error)
+	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
+	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
+	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) error
+	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
-	DeleteUser(ctx context.Context, userID int32) error
-	GetAllUsers(ctx context.Context) ([]User, error)
-	GetUser(ctx context.Context, userID int32) (User, error)
+	DeactivateProduct(ctx context.Context, id uuid.UUID) (int64, error)
+	DecreaseStock(ctx context.Context, arg DecreaseStockParams) (int64, error)
+	DeleteCartItem(ctx context.Context, arg DeleteCartItemParams) error
+	DeleteCategory(ctx context.Context, id uuid.UUID) (int64, error)
+	EnsureCart(ctx context.Context, userID int32) (int64, error)
+	GetAdminProduct(ctx context.Context, id uuid.UUID) (Product, error)
+	GetOrder(ctx context.Context, id uuid.UUID) (Order, error)
+	GetOrderByKey(ctx context.Context, arg GetOrderByKeyParams) (Order, error)
+	GetProduct(ctx context.Context, id uuid.UUID) (Product, error)
+	GetUser(ctx context.Context, argUuid uuid.UUID) (User, error)
+	GetUserByEmail(ctx context.Context, userEmail string) (User, error)
+	ListCartItems(ctx context.Context, cartID int64) ([]ListCartItemsRow, error)
+	ListCategories(ctx context.Context) ([]Category, error)
+	ListOrderItems(ctx context.Context, orderID uuid.UUID) ([]OrderItem, error)
+	ListOrders(ctx context.Context, arg ListOrdersParams) ([]Order, error)
+	ListProducts(ctx context.Context, arg ListProductsParams) ([]Product, error)
+	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
+	LockOrder(ctx context.Context, id uuid.UUID) (Order, error)
+	LockProduct(ctx context.Context, id uuid.UUID) (Product, error)
+	RestoreStock(ctx context.Context, arg RestoreStockParams) error
+	SetOrderStatus(ctx context.Context, arg SetOrderStatusParams) (Order, error)
+	SoftDeleteUser(ctx context.Context, argUuid uuid.UUID) (int64, error)
+	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error)
+	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
+	UpsertCartItem(ctx context.Context, arg UpsertCartItemParams) error
 }
 
 var _ Querier = (*Queries)(nil)

@@ -1,15 +1,53 @@
 services:
   db:
-    image: postgres:18.6-alpine3.24
-    container_name: postgres-db
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: 28012005huy
-      POSTGRES_DB: GoCommerce
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      POSTGRES_DB: ${DB_NAME:-GoCommerce}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:${DB_PUBLISH_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  migrate:
+    image: migrate/migrate:v4.19.1
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./internal/db/migrations:/migrations:ro
+    entrypoint: ["/bin/sh", "-c"]
+    environment:
+      DATABASE_URL: "postgresql://${DB_USER:-postgres}:${DB_PASSWORD:?Set DB_PASSWORD}@db:5432/${DB_NAME:-GoCommerce}?sslmode=disable"
+    command: ['exec migrate -path=/migrations -database "$$DATABASE_URL" up']
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      SERVER_PORT: "8080"
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      DB_NAME: ${DB_NAME:-GoCommerce}
+      DB_SSLMODE: disable
+      API_KEY: ${API_KEY:?Set API_KEY}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+      RATE_LIMITER_REQUEST_SEC: ${RATE_LIMITER_REQUEST_SEC:-5}
+      RATE_LIMITER_REQUEST_BURST: ${RATE_LIMITER_REQUEST_BURST:-10}
+      SHUTDOWN_TIMEOUT: ${SHUTDOWN_TIMEOUT:-10s}
+    ports:
+      - "127.0.0.1:${SERVER_PORT:-8080}:8080"
+    stop_grace_period: 15s
 volumes:
   postgres_data:

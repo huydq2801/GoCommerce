@@ -1,0 +1,35 @@
+name: CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: gocommerce_test
+          POSTGRES_PASSWORD: integration-only
+          POSTGRES_DB: gocommerce_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U gocommerce_test -d gocommerce_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://gocommerce_test:integration-only@localhost:5432/gocommerce_test?sslmode=disable
+      GIN_MODE: release
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Formatting
+        run: test -z "$(gofmt -l cmd internal pkg tests)"
+      - run: go vet ./...
+      - run: go test -race -coverprofile=coverage.out ./...
+      - run: go build -o bin/api ./cmd/api
+      - run: docker build -t gocommerce:ci .

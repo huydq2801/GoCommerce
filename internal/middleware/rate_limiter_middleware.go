@@ -1,114 +1,72 @@
 package middleware
 
 import (
-	"log"
-	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	"golang.org/x/time/rate"
+
 	"huydq2801.com/golearn/internal/utils"
 )
 
-type Client struct {
-	limiter  *rate.Limiter
-	lastseen time.Time
+type client struct {
+	limiter           *rate.Limiter
+	lastSeen, lastLog time.Time
+}
+type limiterStore struct {
+	mu               sync.Mutex
+	clients          map[string]*client
+	nextCleanup      time.Time
+	perSecond, burst int
+	now              func() time.Time
 }
 
-var (
-	clients = make(map[string]*Client)
-	mu      sync.Mutex
-)
-
-func getClientIP(ctx *gin.Context) string {
-	ip := ctx.ClientIP()
-	if ip == "" {
-		ip = ctx.Request.RemoteAddr
+func RateLimiterMiddleware(logger *zerolog.Logger, perSecond, burst int) gin.HandlerFunc {
+	store := &limiterStore{clients: make(map[string]*client), perSecond: perSecond, burst: burst, now: time.Now}
+	return func(c *gin.Context) {
+		allowed, logRejection := store.allow(c.ClientIP())
+		if !allowed {
+			if logRejection {
+				logger.Warn().Str("request_id", c.GetString("request_id")).Msg("rate_limit_exceeded")
+			}
+			c.Header("Retry-After", "1")
+			utils.ResponseError(c, utils.NewError("Too many requests", utils.ErrCodeTooManyRequests))
+			c.Abort()
+			return
+		}
+		c.Next()
 	}
-	return ip
 }
-
-// hey -n 20 -c 1 -H "X-API-Key: " http://localhost:8080/api/v1/users/
-func CleanUpClients() {
-	for {
-		time.Sleep(time.Minute)
-		mu.Lock()
-		for ip, client := range clients {
-			if time.Since(client.lastseen) > 3*time.Minute {
-				delete(clients, ip)
-				log.Printf("Removed client %s", ip)
+func (s *limiterStore) allow(ip string) (bool, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	now := s.now()
+	if !now.Before(s.nextCleanup) {
+		for key, c := range s.clients {
+			if now.Sub(c.lastSeen) > 3*time.Minute {
+				delete(s.clients, key)
 			}
 		}
-		mu.Unlock()
+		s.nextCleanup = now.Add(time.Minute)
 	}
-}
-func getRateLimiter(ip string) *rate.Limiter {
-	mu.Lock()
-	defer mu.Unlock()
-	client, exists := clients[ip]
-	if !exists {
-		requestSecStr := utils.GetEnv("RATE_LIMITER_REQUEST_SEC", "5")
-		requestBurstStr := utils.GetEnv("RATE_LIMITER_REQUEST_BURST", "10")
-		requestSec, err := strconv.Atoi(requestSecStr)
-		if err != nil {
-			panic("Failed to parse requestSec: " + err.Error())
+	c := s.clients[ip]
+	if c == nil {
+		// Bound memory even when many distinct source addresses appear.
+		if len(s.clients) >= 10000 {
+			return false, false
 		}
-		requestBurst, err := strconv.Atoi(requestBurstStr)
-		if err != nil {
-			panic("Failed to parse requestBurst: " + err.Error())
-		}
-		limiter := rate.NewLimiter(rate.Limit(requestSec), requestBurst)
-		newClient := &Client{limiter, time.Now()}
-		clients[ip] = newClient
-		return limiter
+		c = &client{limiter: rate.NewLimiter(rate.Limit(s.perSecond), s.burst)}
+		s.clients[ip] = c
 	}
-	client.lastseen = time.Now()
-	return client.limiter
-}
-func RateLimiterMiddleware(rateLimiterLogger *zerolog.Logger) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		ip := getClientIP(ctx)
-		limiter := getRateLimiter(ip)
-		if !limiter.Allow() {
-			if shouldLogRateLimit(ip) {
-				rateLimiterLogger.Warn().
-					Str("method", ctx.Request.Method).
-					Str("path", ctx.Request.URL.Path).
-					Str("query", ctx.Request.URL.RawQuery).
-					Str("client_ip", ctx.ClientIP()).
-					Str("user_agent", ctx.Request.UserAgent()).
-					Str("referer", ctx.Request.Referer()).
-					Str("protocol", ctx.Request.Proto).
-					Str("host", ctx.Request.Host).
-					Str("remote_addr", ctx.Request.RemoteAddr).
-					Str("request_uri", ctx.Request.RequestURI).
-					Interface("headers", ctx.Request.Header).
-					Msg("rate limiter exceeded")
-					ctx.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
-						"error":   "Too many request",
-						"message": "Bạn có quá nhiều request",
-					})
-					return
-			}
-		}
-		ctx.Next()
+	c.lastSeen = now
+	if c.limiter.AllowN(now, 1) {
+		return true, false
 	}
-}
-
-var rateLimitLogCache = sync.Map{}
-
-const rateLimitLogTTL = 10 * time.Second
-
-func shouldLogRateLimit(ip string) bool {
-	now := time.Now()
-	if val, ok := rateLimitLogCache.Load(ip); ok {
-		if time.Since(val.(time.Time)) < rateLimitLogTTL {
-			return false
-		}
+	logIt := c.lastLog.IsZero() || now.Sub(c.lastLog) >= 10*time.Second
+	if logIt {
+		c.lastLog = now
 	}
-	rateLimitLogCache.Store(ip, now)
-	return true
+	return false, logIt
 }

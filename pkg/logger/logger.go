@@ -28,7 +28,7 @@ func NewLoggerConfig(config LoggerConfig) *zerolog.Logger {
 	if err != nil {
 		lvl = zerolog.InfoLevel
 	}
-	zerolog.SetGlobalLevel(lvl)
+	// Level is configured on this logger, not process-wide.
 	var writer io.Writer
 
 	if config.IsDev == "development" {
@@ -46,7 +46,7 @@ func NewLoggerConfig(config LoggerConfig) *zerolog.Logger {
 		}
 	}
 
-	logger := zerolog.New(writer).With().Timestamp().Logger()
+	logger := zerolog.New(writer).Level(lvl).With().Timestamp().Logger()
 	return &logger
 }
 
@@ -60,5 +60,9 @@ func (w *PrettyJSONWriter) Write(p []byte) (n int, err error) {
 	if err != nil {
 		return w.Writer.Write(p)
 	}
-	return w.Writer.Write(prettyJSON.Bytes())
+	_, err = w.Writer.Write(append(prettyJSON.Bytes(), '\n'))
+	if err != nil {
+		return 0, err
+	}
+	return len(p), nil
 }

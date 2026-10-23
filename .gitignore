@@ -6,8 +6,8 @@
 *.dylib
 bin/
 dist/
-main
-api
+/main
+/api
 
 # Test binary, profiling, and coverage
 *.test
