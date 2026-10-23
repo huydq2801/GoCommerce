@@ -12,10 +12,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
-	"huydq2801.com/golearn/internal/db/sqlc"
-	v1dto "huydq2801.com/golearn/internal/dto/v1"
-	"huydq2801.com/golearn/internal/repository"
-	"huydq2801.com/golearn/internal/utils"
+	"gocommerce/internal/db/sqlc"
+	v1dto "gocommerce/internal/dto/v1"
+	"gocommerce/internal/repository"
+	"gocommerce/internal/utils"
 )
 
 type ShoppingService struct{ store *repository.ShoppingStore }

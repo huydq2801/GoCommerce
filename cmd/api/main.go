@@ -11,9 +11,9 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 
-	"huydq2801.com/golearn/internal/app"
-	"huydq2801.com/golearn/internal/config"
-	"huydq2801.com/golearn/internal/db"
+	"gocommerce/internal/app"
+	"gocommerce/internal/config"
+	"gocommerce/internal/db"
 )
 
 func main() {

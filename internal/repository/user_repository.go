@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"huydq2801.com/golearn/internal/db/sqlc"
+	"gocommerce/internal/db/sqlc"
 )
 
 type SQLUserRepository struct{ db sqlc.Querier }

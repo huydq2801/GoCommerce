@@ -7,8 +7,8 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"huydq2801.com/golearn/internal/db/sqlc"
-	"huydq2801.com/golearn/internal/repository"
+	"gocommerce/internal/db/sqlc"
+	"gocommerce/internal/repository"
 )
 
 type userRepoStub struct {
@@ -26,12 +26,12 @@ func TestRegistrationNormalizesHashesAndForcesMember(t *testing.T) {
 	repo := &userRepoStub{}
 	service := NewUserService(repo)
 	password := "GoodPass1!"
-	_, err := service.CreateUser(context.Background(), sqlc.CreateUserParams{UserEmail: "  Huy@Example.com ", UserPassword: password, UserFullname: " Huy ", UserLevel: 1, UserStatus: 3})
+	_, err := service.CreateUser(context.Background(), sqlc.CreateUserParams{UserEmail: "  Alex@Example.com ", UserPassword: password, UserFullname: " Alex ", UserLevel: 1, UserStatus: 3})
 	if err != nil {
 		t.Fatal(err)
 	}
 	p := repo.captured
-	if p.UserEmail != "huy@example.com" || p.UserFullname != "Huy" || p.UserLevel != 3 || p.UserStatus != 1 {
+	if p.UserEmail != "alex@example.com" || p.UserFullname != "Alex" || p.UserLevel != 3 || p.UserStatus != 1 {
 		t.Fatalf("bad normalized values: email=%s role=%d", p.UserEmail, p.UserLevel)
 	}
 	if err = bcrypt.CompareHashAndPassword([]byte(p.UserPassword), []byte(password)); err != nil {
@@ -40,7 +40,7 @@ func TestRegistrationNormalizesHashesAndForcesMember(t *testing.T) {
 }
 func TestTooLongPasswordRejectedBeforeDatabase(t *testing.T) {
 	repo := &userRepoStub{}
-	_, err := NewUserService(repo).CreateUser(context.Background(), sqlc.CreateUserParams{UserFullname: "Huy", UserPassword: strings.Repeat("a", 73)})
+	_, err := NewUserService(repo).CreateUser(context.Background(), sqlc.CreateUserParams{UserFullname: "Alex", UserPassword: strings.Repeat("a", 73)})
 	if err == nil || repo.calls != 0 {
 		t.Fatal("oversized password reached database")
 	}

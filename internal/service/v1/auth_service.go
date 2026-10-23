@@ -7,8 +7,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 
-	"huydq2801.com/golearn/internal/db/sqlc"
-	"huydq2801.com/golearn/internal/utils"
+	"gocommerce/internal/db/sqlc"
+	"gocommerce/internal/utils"
 )
 
 type AuthRepository interface {

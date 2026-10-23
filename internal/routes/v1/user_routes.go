@@ -3,8 +3,8 @@ package v1routes
 import (
 	"github.com/gin-gonic/gin"
 
-	v1handler "huydq2801.com/golearn/internal/handler/v1"
-	"huydq2801.com/golearn/internal/middleware"
+	v1handler "gocommerce/internal/handler/v1"
+	"gocommerce/internal/middleware"
 )
 
 type UserRouters struct {

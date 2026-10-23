@@ -3,10 +3,10 @@ package v1handler
 import (
 	"github.com/gin-gonic/gin"
 
-	v1dto "huydq2801.com/golearn/internal/dto/v1"
-	"huydq2801.com/golearn/internal/middleware"
-	v1service "huydq2801.com/golearn/internal/service/v1"
-	"huydq2801.com/golearn/internal/utils"
+	v1dto "gocommerce/internal/dto/v1"
+	"gocommerce/internal/middleware"
+	v1service "gocommerce/internal/service/v1"
+	"gocommerce/internal/utils"
 )
 
 type AuthHandler struct{ service *v1service.AuthService }

@@ -16,8 +16,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 
-	"huydq2801.com/golearn/internal/db/sqlc"
-	"huydq2801.com/golearn/internal/utils"
+	"gocommerce/internal/db/sqlc"
+	"gocommerce/internal/utils"
 )
 
 func TestLimiterRejectsEveryExcessRequest(t *testing.T) {

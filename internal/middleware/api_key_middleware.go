@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"huydq2801.com/golearn/internal/utils"
+	"gocommerce/internal/utils"
 )
 
 // API keys protect administrative endpoints only until JWT/RBAC is implemented.

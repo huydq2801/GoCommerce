@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog"
 	"golang.org/x/time/rate"
 
-	"huydq2801.com/golearn/internal/utils"
+	"gocommerce/internal/utils"
 )
 
 type client struct {

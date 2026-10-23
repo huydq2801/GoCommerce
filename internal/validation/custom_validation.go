@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 
-	"huydq2801.com/golearn/internal/utils"
+	"gocommerce/internal/utils"
 )
 
 func RegisterCustomValidation(v *validator.Validate) {

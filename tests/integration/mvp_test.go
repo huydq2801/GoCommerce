@@ -19,12 +19,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 
-	"huydq2801.com/golearn/internal/app"
-	"huydq2801.com/golearn/internal/config"
-	"huydq2801.com/golearn/internal/db/sqlc"
-	v1dto "huydq2801.com/golearn/internal/dto/v1"
-	"huydq2801.com/golearn/internal/repository"
-	v1service "huydq2801.com/golearn/internal/service/v1"
+	"gocommerce/internal/app"
+	"gocommerce/internal/config"
+	"gocommerce/internal/db/sqlc"
+	v1dto "gocommerce/internal/dto/v1"
+	"gocommerce/internal/repository"
+	v1service "gocommerce/internal/service/v1"
 )
 
 const adminKey = "integration-admin-key-only-32-characters"
@@ -144,11 +144,11 @@ func TestMVPHTTPFlow(t *testing.T) {
 	admin := map[string]string{"X-API-Key": adminKey}
 	request(t, h, "GET", "/health/live", nil, nil, 200)
 	request(t, h, "GET", "/health/ready", nil, nil, 200)
-	request(t, h, "POST", "/api/v1/auth/register", map[string]any{"name": "Huy", "email": "x@example.com", "age": 21, "password": "StrongPass1!", "level": 1}, nil, 400)
+	request(t, h, "POST", "/api/v1/auth/register", map[string]any{"name": "Alex", "email": "x@example.com", "age": 21, "password": "StrongPass1!", "level": 1}, nil, 400)
 	userUUID, token := registerAndLogin(t, h, "buyer@example.com")
 	buyer := map[string]string{"Authorization": "Bearer " + token}
 	request(t, h, "POST", "/api/v1/auth/login", map[string]any{"email": "buyer@example.com", "password": "wrong"}, nil, 401)
-	request(t, h, "POST", "/api/v1/auth/register", map[string]any{"name": "Huy", "email": "buyer@example.com", "age": 21, "password": "StrongPass1!"}, nil, 409)
+	request(t, h, "POST", "/api/v1/auth/register", map[string]any{"name": "Alex", "email": "buyer@example.com", "age": 21, "password": "StrongPass1!"}, nil, 409)
 	request(t, h, "GET", "/api/v1/users/me", nil, buyer, 200)
 	request(t, h, "GET", "/api/v1/users", nil, buyer, 403)
 	request(t, h, "POST", "/api/v1/categories", map[string]any{"name": "Phones", "slug": "phones"}, buyer, 403)
@@ -178,7 +178,7 @@ func TestMVPHTTPFlow(t *testing.T) {
 	}
 	key := uuid.NewString()
 	checkoutHeaders := map[string]string{"Authorization": "Bearer " + token, "Idempotency-Key": key}
-	shipping := map[string]any{"recipient_name": "Huy", "phone": "0901234567", "address": "Thanh Tri, Ha Noi"}
+	shipping := map[string]any{"recipient_name": "Alex", "phone": "0000000000", "address": "123 Example Street, Example City"}
 	order := request(t, h, "POST", "/api/v1/orders", shipping, checkoutHeaders, 201)["data"].(map[string]any)
 	orderID := order["id"].(string)
 	if order["total_vnd"] != float64(28000000) {
@@ -190,7 +190,7 @@ func TestMVPHTTPFlow(t *testing.T) {
 	}
 	shipping["address"] = "Different address"
 	request(t, h, "POST", "/api/v1/orders", shipping, checkoutHeaders, 409)
-	shipping["address"] = "Thanh Tri, Ha Noi"
+	shipping["address"] = "123 Example Street, Example City"
 	otherUUID, otherToken := registerAndLogin(t, h, "other@example.com")
 	other := map[string]string{"Authorization": "Bearer " + otherToken}
 	request(t, h, "GET", "/api/v1/orders/"+orderID, nil, other, 404)
@@ -278,7 +278,7 @@ func TestConcurrentCheckoutDoesNotOversell(t *testing.T) {
 		go func(userID int32) {
 			defer wg.Done()
 			<-start
-			_, _, err := service.Checkout(ctx, userID, uuid.New(), v1dto.CheckoutInput{RecipientName: "Buyer", Phone: "0901234567", Address: "Ha Noi, Viet Nam"})
+			_, _, err := service.Checkout(ctx, userID, uuid.New(), v1dto.CheckoutInput{RecipientName: "Buyer", Phone: "0000000000", Address: "123 Example Street, Example City"})
 			outcomes <- err
 		}(id)
 	}
@@ -336,7 +336,7 @@ func TestCheckoutRollsBackEveryInventoryChange(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	_, _, err = shop.Checkout(ctx, user.UserID, uuid.New(), v1dto.CheckoutInput{RecipientName: "Buyer", Phone: "0901234567", Address: "Ha Noi, Viet Nam"})
+	_, _, err = shop.Checkout(ctx, user.UserID, uuid.New(), v1dto.CheckoutInput{RecipientName: "Buyer", Phone: "0000000000", Address: "123 Example Street, Example City"})
 	if err == nil {
 		t.Fatal("checkout should fail on the second product")
 	}
@@ -394,7 +394,7 @@ func TestSameCheckoutKeyConcurrentRequests(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			order, _, err := service.Checkout(ctx, user.UserID, key, v1dto.CheckoutInput{RecipientName: "Buyer", Phone: "0901234567", Address: "Ha Noi, Viet Nam"})
+			order, _, err := service.Checkout(ctx, user.UserID, key, v1dto.CheckoutInput{RecipientName: "Buyer", Phone: "0000000000", Address: "123 Example Street, Example City"})
 			outcomes <- outcome{id: order.ID, err: err}
 		}()
 	}

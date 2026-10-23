@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 
-	"huydq2801.com/golearn/internal/utils"
+	"gocommerce/internal/utils"
 )
 
 func InitValidator() error {

@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"huydq2801.com/golearn/internal/config"
+	"gocommerce/internal/config"
 )
 
 func Open(ctx context.Context, cfg *config.Config) (*pgxpool.Pool, error) {

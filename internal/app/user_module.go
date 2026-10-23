@@ -1,11 +1,11 @@
 package app
 
 import (
-	v1handler "huydq2801.com/golearn/internal/handler/v1"
-	"huydq2801.com/golearn/internal/repository"
-	"huydq2801.com/golearn/internal/routes"
-	v1routes "huydq2801.com/golearn/internal/routes/v1"
-	v1service "huydq2801.com/golearn/internal/service/v1"
+	v1handler "gocommerce/internal/handler/v1"
+	"gocommerce/internal/repository"
+	"gocommerce/internal/routes"
+	v1routes "gocommerce/internal/routes/v1"
+	v1service "gocommerce/internal/service/v1"
 )
 
 type UserModule struct {

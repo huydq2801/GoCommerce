@@ -12,16 +12,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 
-	"huydq2801.com/golearn/internal/apidocs"
-	"huydq2801.com/golearn/internal/config"
-	"huydq2801.com/golearn/internal/db/sqlc"
-	v1handler "huydq2801.com/golearn/internal/handler/v1"
-	"huydq2801.com/golearn/internal/middleware"
-	"huydq2801.com/golearn/internal/repository"
-	"huydq2801.com/golearn/internal/routes"
-	v1routes "huydq2801.com/golearn/internal/routes/v1"
-	v1service "huydq2801.com/golearn/internal/service/v1"
-	"huydq2801.com/golearn/internal/validation"
+	"gocommerce/internal/apidocs"
+	"gocommerce/internal/config"
+	"gocommerce/internal/db/sqlc"
+	v1handler "gocommerce/internal/handler/v1"
+	"gocommerce/internal/middleware"
+	"gocommerce/internal/repository"
+	"gocommerce/internal/routes"
+	v1routes "gocommerce/internal/routes/v1"
+	v1service "gocommerce/internal/service/v1"
+	"gocommerce/internal/validation"
 )
 
 type Module interface{ Routes() routes.Route }

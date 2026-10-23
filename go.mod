@@ -1,4 +1,4 @@
-module huydq2801.com/golearn
+module gocommerce
 
 go 1.26.5
 

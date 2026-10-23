@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"huydq2801.com/golearn/internal/db/sqlc"
+	"gocommerce/internal/db/sqlc"
 )
 
 // sqlc already implements these persistence operations; no duplicate SQL wrapper is needed.

@@ -11,8 +11,8 @@
       "description": "Local development"
     },
     {
-      "url": "https://api.doanquanghuy.id.vn",
-      "description": "Proposed production domain; deployment is a separate step"
+      "url": "https://api.example.com",
+      "description": "Deployment example; replace with the configured API hostname"
     }
   ],
   "paths": {

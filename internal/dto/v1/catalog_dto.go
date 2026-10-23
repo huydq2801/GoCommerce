@@ -5,8 +5,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"huydq2801.com/golearn/internal/db/sqlc"
-	"huydq2801.com/golearn/internal/utils"
+	"gocommerce/internal/db/sqlc"
+	"gocommerce/internal/utils"
 )
 
 type CategoryInput struct {

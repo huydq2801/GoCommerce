@@ -7,9 +7,9 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
-	"huydq2801.com/golearn/internal/db/sqlc"
-	"huydq2801.com/golearn/internal/repository"
-	"huydq2801.com/golearn/internal/utils"
+	"gocommerce/internal/db/sqlc"
+	"gocommerce/internal/repository"
+	"gocommerce/internal/utils"
 )
 
 type userService struct{ repo repository.UserRepository }

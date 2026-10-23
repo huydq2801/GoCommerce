@@ -6,7 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"huydq2801.com/golearn/internal/db/sqlc"
+	"gocommerce/internal/db/sqlc"
 )
 
 type ShoppingStore struct {

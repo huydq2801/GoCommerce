@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 
-	"huydq2801.com/golearn/internal/utils"
+	"gocommerce/internal/utils"
 )
 
 func RecoveryMiddleware(logger *zerolog.Logger) gin.HandlerFunc {

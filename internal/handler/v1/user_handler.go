@@ -6,10 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	"huydq2801.com/golearn/internal/db/sqlc"
-	v1dto "huydq2801.com/golearn/internal/dto/v1"
-	v1service "huydq2801.com/golearn/internal/service/v1"
-	"huydq2801.com/golearn/internal/utils"
+	"gocommerce/internal/db/sqlc"
+	v1dto "gocommerce/internal/dto/v1"
+	v1service "gocommerce/internal/service/v1"
+	"gocommerce/internal/utils"
 )
 
 type UserHandler struct{ service v1service.UserService }

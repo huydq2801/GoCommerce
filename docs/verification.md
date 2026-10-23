@@ -68,4 +68,4 @@ go test -race ./...
 
 Bản MVP đã vượt qua unit/integration tests với PostgreSQL 18, `go vet`, kiểm tra định dạng và Docker Compose smoke test. Script demo xác nhận retry trả cùng order ID và hủy đơn hoàn kho đúng.
 
-GitHub Actions được cấu hình để chạy format, vet, race tests, build binary và Docker image. Trạng thái từng lần chạy được theo dõi tại [Actions](https://github.com/huydq2801/GoCommerce/actions).
+GitHub Actions được cấu hình để chạy format, vet, race tests, build binary và Docker image. Trạng thái từng lần chạy được theo dõi tại tab Actions của repository.

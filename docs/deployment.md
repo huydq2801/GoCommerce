@@ -1,11 +1,11 @@
-# Dùng domain doanquanghuy.id.vn
+# Deployment guide
 
-Domain không thay VPS. Cấu hình này được chuẩn bị cho một Linux VPS do bạn quản lý; chưa tạo server, đổi DNS hay cấp certificate.
+Các domain example.com trong tài liệu là placeholder; thay bằng domain triển khai thực tế. Domain không thay VPS. Cấu hình này được chuẩn bị cho một Linux VPS do bạn quản lý; chưa tạo server, đổi DNS hay cấp certificate.
 
 ## Bố trí đề xuất
 
-- `api.doanquanghuy.id.vn`: GoCommerce backend và `/openapi.json`.
-- `doanquanghuy.id.vn`: portfolio/trang giới thiệu hoặc storefront ở giai đoạn sau.
+- `api.example.com`: GoCommerce backend và `/openapi.json`.
+- `example.com`: storefront hoặc trang giới thiệu ứng dụng.
 - PostgreSQL chỉ bind loopback host; không đưa cổng 5432 ra Internet.
 - Nginx chạy trên host, proxy tới `127.0.0.1:8080`; Compose API cũng chỉ publish loopback.
 
@@ -17,7 +17,7 @@ Domain không thay VPS. Cấu hình này được chuẩn bị cho một Linux V
 4. Dùng secret ngẫu nhiên độc lập cho DB_PASSWORD, API_KEY và JWT_SECRET; không dùng dữ liệu ví dụ/test. Với Compose migrate URL hiện tại, dùng password dạng hex để tránh ký tự URL đặc biệt.
 5. Backup database hiện có, chạy `docker compose up --build --wait`, kiểm tra `curl http://127.0.0.1:8080/health/ready`.
 6. Cài template `deploy/nginx/api.conf`, chạy `sudo nginx -t` rồi reload Nginx.
-7. Khi DNS đã trỏ đúng, cấp certificate cho `api.doanquanghuy.id.vn`, ví dụ `sudo certbot --nginx -d api.doanquanghuy.id.vn`. Mở inbound 80/443 và giữ cổng SSH đang dùng. Không bật firewall mới trước khi giữ đường SSH của bạn.
+7. Khi DNS đã trỏ đúng, cấp certificate cho `api.example.com`, ví dụ `sudo certbot --nginx -d api.example.com`. Mở inbound 80/443 và giữ cổng SSH đang dùng. Không bật firewall mới trước khi giữ đường SSH của bạn.
 8. Kiểm tra HTTPS, redirect HTTP → HTTPS và lịch tự gia hạn; thử `sudo certbot renew --dry-run`.
 9. Chạy demo qua HTTPS và chỉ lúc đó mới thêm URL demo vào CV.
 

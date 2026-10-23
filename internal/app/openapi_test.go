@@ -8,8 +8,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"huydq2801.com/golearn/internal/apidocs"
-	"huydq2801.com/golearn/internal/config"
+	"gocommerce/internal/apidocs"
+	"gocommerce/internal/config"
 )
 
 func TestOpenAPICoversEveryRoute(t *testing.T) {

@@ -27,7 +27,7 @@ $login = (Call-API POST '/api/v1/auth/login' @{ email = $email; password = $pass
 $buyer = @{ Authorization = "Bearer $($login.access_token)" }
 $null = Call-API PUT "/api/v1/cart/items/$($phone.id)" @{ quantity = 2 } $buyer
 $checkout = @{ Authorization = $buyer.Authorization; 'Idempotency-Key' = [guid]::NewGuid().ToString() }
-$address = @{ recipient_name = 'Demo Buyer'; phone = '0901234567'; address = 'Thanh Tri, Ha Noi' }
+$address = @{ recipient_name = 'Demo Buyer'; phone = '0000000000'; address = '123 Example Street, Example City' }
 $order = (Call-API POST '/api/v1/orders' $address $checkout).data
 $replay = (Call-API POST '/api/v1/orders' $address $checkout).data
 if ($order.id -ne $replay.id -or $order.total_vnd -ne 30000000) { throw 'Checkout/idempotency validation failed' }
